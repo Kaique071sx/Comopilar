@@ -1,13 +1,11 @@
-name: Build ProxyPin PT-BR
+name: Build ProxyPin SSH Debug
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-and-release:
+  debug:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -19,14 +17,10 @@ jobs:
           repository: wanghongenpin/proxypin
           path: proxypin_oficial
 
-      - name: Limpar tradução antiga e colocar a nova
+      - name: Preparar arquivos
         run: |
           rm -f proxypin_oficial/lib/l10n/*pt*.arb
           cp meu_repo/app_pt-BR.arb proxypin_oficial/lib/l10n/
-
-      - name: Configurar Git para burlar bloqueio do Gitee
-        run: |
-          git config --global http.userAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
       - uses: actions/setup-java@v4
         with:
@@ -37,14 +31,6 @@ jobs:
         with:
           channel: 'stable'
 
-      - working-directory: ./proxypin_oficial
-        run: flutter pub get
-
-      - working-directory: ./proxypin_oficial
-        run: flutter build apk --release
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: pt-br
-          name: ProxyPin PT-BR
-          files: proxypin_oficial/build/app/outputs/flutter-apk/app-release.apk
+      - name: Abrir Acesso SSH
+        uses: mxschmitt/action-tmate@v3
+        if: always()
