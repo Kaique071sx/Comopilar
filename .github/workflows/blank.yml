@@ -1,0 +1,57 @@
+name: Build ProxyPin PT-BR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: meu_repo
+
+      - uses: actions/checkout@v4
+        with:
+          repository: wanghongenpin/proxypin
+          path: proxypin_oficial
+
+      - name: Limpar tradução antiga e colocar a nova
+        run: |
+          rm -f proxypin_oficial/lib/l10n/*pt*.arb
+          cp meu_repo/app_pt-BR.arb proxypin_oficial/lib/l10n/
+
+      - name: Baixar e burlar dependência travada do Gitee
+        working-directory: ./proxypin_oficial
+        run: |
+          # Baixa o plugin direto via HTTP (o Gitee não bloqueia isso)
+          curl -L -o plugins.zip https://gitee.com/wanghongenpin/flutter-plugins/repository/archive/main.zip
+          unzip plugins.zip
+          
+          # Ajusta o arquivo de configuração para ler a pasta local descompactada
+          # Em vez de tentar dar 'git clone' no Gitee
+          sed -i 's|git: https://gitee.com/wanghongenpin/flutter-plugins.git|path: ./flutter-plugins-main|g' pubspec.yaml
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - working-directory: ./proxypin_oficial
+        run: flutter pub get
+
+      - working-directory: ./proxypin_oficial
+        run: flutter build apk --release
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pt-br
+          name: ProxyPin PT-BR
+          files: proxypin_oficial/build/app/outputs/flutter-apk/app-release.apk
